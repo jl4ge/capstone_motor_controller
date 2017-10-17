@@ -1,0 +1,8 @@
+Debug/*
+*.cmd
+.settings/*
+.ccsproject
+.cproject
+.project
+targetConfigs/*
+.launches/*
