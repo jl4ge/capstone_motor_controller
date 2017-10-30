@@ -8,16 +8,38 @@
 #ifndef STEPPERMOTOR_H_
 #define STEPPERMOTOR_H_
 
+/* Include statements */
 #include "msp.h"
 #include <stdint.h>
+
+typedef enum {
+    A5984, A4988
+} MotorDriver;
+
+#define MOTOR_DRIVER A4988
+
+#if MOTOR_DRIVER == A5984
 
 typedef enum {
     FullStep, HalfStep, QuarterStep, EighthStep, SixteenthStep, ThirtysecondStep
 } SteppingModes;
 
+#elif MOTOR_DRIVER == A4988
+
+typedef enum {
+    FullStep, HalfStep, QuarterStep, EighthStep, SixteenthStep
+} SteppingModes;
+
+#endif
+
+typedef enum {
+    Stopped, Resetting, MovingForward, MovingBackward
+} StepperMotorStates;
+
 class StepperMotor {
 public:
-    /* Constructor */
+    /* Constructors */
+    StepperMotor();
     StepperMotor(uint8_t * enableDir,
                  uint8_t * dirDir,
                  uint8_t * stepDir,
@@ -51,26 +73,39 @@ public:
                  uint8_t * faultIn,
                  uint8_t * faultRen);
 
-    /* Methods for changing the motor driver pins */
+    /* High level functions */
     void sleep();
     void wakeUp();
     void enable();
     void dissable();
     void setStepMode(SteppingModes mode);
     bool getFaultState();
-    void reset();
-    void stepToggle();
+    bool isMoving();
+    StepperMotorStates getState();
 
+    /* Methods for moving the motor. */
+    void resetLimits();
+    void goTo(int32_t coordinate);
+    void go(int32_t);
+
+    /* Methods for changing the motor driver pins */
     void resetEnable();
     void resetDisable();
     void stepEnable();
     void stepDisable();
+    void stepToggle();
     void dirSet();
     void dirReset();
+    void dirToggle();
 
+    /* Function for when the limit has been hit. */
+    void hitLimit();
+
+    /* Timer Interrupt tick function */
+    void tick();
 
 private:
-    /* Port declarations */
+    /* Port attributes */
     uint8_t * enableOut;
     uint8_t * dirOut;
     uint8_t * stepOut;
@@ -82,7 +117,7 @@ private:
 
     uint8_t * faultIn;
 
-    /* Port pin declarations */
+    /* Port pin attributes */
     uint8_t enablePin;
     uint8_t dirPin;
     uint8_t stepPin;
@@ -92,6 +127,12 @@ private:
     uint8_t ms1Pin;
     uint8_t ms2Pin;
     uint8_t ms3Pin;
+
+    /* Motor motion attributes */
+    int32_t position;
+    int32_t destination;
+    int32_t max;
+    StepperMotorStates state;
 };
 
 #endif /* STEPPERMOTOR_H_ */

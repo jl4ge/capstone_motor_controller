@@ -34,7 +34,64 @@
 * 
 *****************************************************************************/
 
+
+
+
+
+
+
 #include <stdint.h>
+#include "msp.h"
+#include "StepperMotorTimer.h"
+
+/*--------------------- Configuration Instructions ----------------------------
+   1. If you prefer to halt the Watchdog Timer, set __HALT_WDT to 1:
+   #define __HALT_WDT       1
+   2. Insert your desired CPU frequency in Hz at:
+   #define __SYSTEM_CLOCK   12000000
+   3. If you prefer the DC-DC power regulator (more efficient at higher
+       frequencies), set the __REGULATOR to 1:
+   #define __REGULATOR      1
+ *---------------------------------------------------------------------------*/
+
+/*--------------------- Watchdog Timer Configuration ------------------------*/
+//  Halt the Watchdog Timer
+//     <0> Do not halt the WDT
+//     <1> Halt the WDT
+#define __HALT_WDT         1
+
+/*--------------------- CPU Frequency Configuration -------------------------*/
+//  CPU Frequency
+//     <1500000> 1.5 MHz
+//     <3000000> 3 MHz
+//     <12000000> 12 MHz
+//     <24000000> 24 MHz
+//     <48000000> 48 MHz
+#define  __SYSTEM_CLOCK    3000000
+
+/*--------------------- Power Regulator Configuration -----------------------*/
+//  Power Regulator Mode
+//     <0> LDO
+//     <1> DC-DC
+#define __REGULATOR        0
+
+/*----------------------------------------------------------------------------
+   Define clocks, used for SystemCoreClockUpdate()
+ *---------------------------------------------------------------------------*/
+#define __VLOCLK           10000
+#define __MODCLK           24000000
+#define __LFXT             32768
+#define __HFXT             48000000
+
+/*----------------------------------------------------------------------------
+   Clock Variable definitions
+ *---------------------------------------------------------------------------*/
+//uint32_t SystemCoreClock = __SYSTEM_CLOCK;  /*!< System Clock Frequency (Core Clock)*/
+
+
+
+
+
 
 /* Linker variable that marks the top of the stack. */
 extern unsigned long __STACK_END;
@@ -44,7 +101,7 @@ extern unsigned long __STACK_END;
 extern void _c_int00(void);
 
 /* External declaration for system initialization function                  */
-extern void SystemInit(void);
+//extern void SystemInit(void);
 
 /* Forward declaration of the default fault handlers. */
 void Default_Handler            (void) __attribute__((weak));
@@ -107,9 +164,14 @@ extern void PORT6_IRQHandler    (void) __attribute__((weak,alias("Default_Handle
 /* Interrupt vector table.  Note that the proper constructs must be placed on this to */
 /* ensure that it ends up at physical address 0x0000.0000 or at the start of          */
 /* the program if located at a start address other than 0.                            */
-#pragma RETAIN(interruptVectors)
+#ifdef __cplusplus
+#pragma RETAIN
+#pragma DATA_SECTION(".intvecs")
+#else
+#pragma RETAIN (interruptVectors)
 #pragma DATA_SECTION(interruptVectors, ".intvecs")
-void (* const interruptVectors[])(void) =
+#endif
+extern void (* const interruptVectors[])(void) =
 {
     (void (*)(void))((uint32_t)&__STACK_END),
                                            /* The initial stack pointer */
@@ -136,8 +198,8 @@ void (* const interruptVectors[])(void) =
     FLCTL_IRQHandler,                      /* Flash Controller Interrupt*/
     COMP_E0_IRQHandler,                    /* COMP_E0 Interrupt         */
     COMP_E1_IRQHandler,                    /* COMP_E1 Interrupt         */
-    TA0_0_IRQHandler,                      /* TA0_0 Interrupt           */
-    TA0_N_IRQHandler,                      /* TA0_N Interrupt           */
+    StepperMotorTimer::TA0_0,                      /* TA0_0 Interrupt           */
+    StepperMotorTimer::TA0_N,                      /* TA0_N Interrupt           */
     TA1_0_IRQHandler,                      /* TA1_0 Interrupt           */
     TA1_N_IRQHandler,                      /* TA1_N Interrupt           */
     TA2_0_IRQHandler,                      /* TA2_0 Interrupt           */
@@ -180,7 +242,140 @@ void (* const interruptVectors[])(void) =
 /* application.                                                                */
 void Reset_Handler(void)
 {
-    SystemInit();
+    // Enable FPU if used
+        #if (__FPU_USED == 1)                                  // __FPU_USED is defined in core_cm4.h
+        SCB->CPACR |= ((3UL << 10 * 2) |                       // Set CP10 Full Access
+                       (3UL << 11 * 2));                       // Set CP11 Full Access
+        #endif
+
+        #if (__HALT_WDT == 1)
+        WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;            // Halt the WDT
+        #endif
+
+        SYSCTL->SRAM_BANKEN = SYSCTL_SRAM_BANKEN_BNK7_EN;      // Enable all SRAM banks
+
+        #if (__SYSTEM_CLOCK == 1500000)                        // 1.5 MHz
+        // Default VCORE is LDO VCORE0 so no change necessary
+
+        // Switches LDO VCORE0 to DCDC VCORE0 if requested
+        #if __REGULATOR
+        while((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+        PCM->CTL0 = PCM_CTL0_KEY_VAL | PCM_CTL0_AMR_4;
+        while((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+        #endif
+
+        // No flash wait states necessary
+
+        // DCO = 1.5 MHz; MCLK = source
+        CS->KEY = CS_KEY_VAL;                                  // Unlock CS module for register access
+        CS->CTL0 = CS_CTL0_DCORSEL_0;                          // Set DCO to 1.5MHz
+        CS->CTL1 = (CS->CTL1 & ~(CS_CTL1_SELM_MASK | CS_CTL1_DIVM_MASK)) | CS_CTL1_SELM__DCOCLK;
+                                                               // Select MCLK as DCO source
+        CS->KEY = 0;
+
+        // Set Flash Bank read buffering
+        FLCTL->BANK0_RDCTL = FLCTL->BANK0_RDCTL & ~(FLCTL_BANK0_RDCTL_BUFD | FLCTL_BANK0_RDCTL_BUFI);
+        FLCTL->BANK1_RDCTL = FLCTL->BANK1_RDCTL & ~(FLCTL_BANK1_RDCTL_BUFD | FLCTL_BANK1_RDCTL_BUFI);
+
+        #elif (__SYSTEM_CLOCK == 3000000)                      // 3 MHz
+        // Default VCORE is LDO VCORE0 so no change necessary
+
+        // Switches LDO VCORE0 to DCDC VCORE0 if requested
+        #if __REGULATOR
+        while(PCM->CTL1 & PCM_CTL1_PMR_BUSY);
+        PCM->CTL0 = PCM_CTL0_KEY_VAL | PCM_CTL0_AMR_4;
+        while(PCM->CTL1 & PCM_CTL1_PMR_BUSY);
+        #endif
+
+        // No flash wait states necessary
+
+        // DCO = 3 MHz; MCLK = source
+        CS->KEY = CS_KEY_VAL;                                  // Unlock CS module for register access
+        CS->CTL0 = CS_CTL0_DCORSEL_1;                          // Set DCO to 1.5MHz
+        CS->CTL1 = (CS->CTL1 & ~(CS_CTL1_SELM_MASK | CS_CTL1_DIVM_MASK)) | CS_CTL1_SELM__DCOCLK;
+                                                               // Select MCLK as DCO source
+        CS->KEY = 0;
+
+        // Set Flash Bank read buffering
+        FLCTL->BANK0_RDCTL = FLCTL->BANK0_RDCTL & ~(FLCTL_BANK0_RDCTL_BUFD | FLCTL_BANK0_RDCTL_BUFI);
+        FLCTL->BANK1_RDCTL = FLCTL->BANK1_RDCTL & ~(FLCTL_BANK1_RDCTL_BUFD | FLCTL_BANK1_RDCTL_BUFI);
+
+        #elif (__SYSTEM_CLOCK == 12000000)                     // 12 MHz
+        // Default VCORE is LDO VCORE0 so no change necessary
+
+        // Switches LDO VCORE0 to DCDC VCORE0 if requested
+        #if __REGULATOR
+        while((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+        PCM->CTL0 = PCM_CTL0_KEY_VAL | PCM_CTL0_AMR_4;
+        while((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+        #endif
+
+        // No flash wait states necessary
+
+        // DCO = 12 MHz; MCLK = source
+        CS->KEY = CS_KEY_VAL;                                  // Unlock CS module for register access
+        CS->CTL0 = CS_CTL0_DCORSEL_3;                          // Set DCO to 12MHz
+        CS->CTL1 = (CS->CTL1 & ~(CS_CTL1_SELM_MASK | CS_CTL1_DIVM_MASK)) | CS_CTL1_SELM__DCOCLK;
+                                                               // Select MCLK as DCO source
+        CS->KEY = 0;
+
+        // Set Flash Bank read buffering
+        FLCTL->BANK0_RDCTL = FLCTL->BANK0_RDCTL & ~(FLCTL_BANK0_RDCTL_BUFD | FLCTL_BANK0_RDCTL_BUFI);
+        FLCTL->BANK1_RDCTL = FLCTL->BANK1_RDCTL & ~(FLCTL_BANK1_RDCTL_BUFD | FLCTL_BANK1_RDCTL_BUFI);
+
+        #elif (__SYSTEM_CLOCK == 24000000)                     // 24 MHz
+        // Default VCORE is LDO VCORE0 so no change necessary
+
+        // Switches LDO VCORE0 to DCDC VCORE0 if requested
+        #if __REGULATOR
+        while((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+        PCM->CTL0 = PCM_CTL0_KEY_VAL | PCM_CTL0_AMR_4;
+        while((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+        #endif
+
+        // 1 flash wait state (BANK0 VCORE0 max is 12 MHz)
+        FLCTL->BANK0_RDCTL = (FLCTL->BANK0_RDCTL & ~FLCTL_BANK0_RDCTL_WAIT_MASK) | FLCTL_BANK0_RDCTL_WAIT_1;
+        FLCTL->BANK1_RDCTL = (FLCTL->BANK1_RDCTL & ~FLCTL_BANK1_RDCTL_WAIT_MASK) | FLCTL_BANK1_RDCTL_WAIT_1;
+
+        // DCO = 24 MHz; MCLK = source
+        CS->KEY = CS_KEY_VAL;                                  // Unlock CS module for register access
+        CS->CTL0 = CS_CTL0_DCORSEL_4;                          // Set DCO to 24MHz
+        CS->CTL1 = (CS->CTL1 & ~(CS_CTL1_SELM_MASK | CS_CTL1_DIVM_MASK)) | CS_CTL1_SELM__DCOCLK;
+                                                               // Select MCLK as DCO source
+        CS->KEY = 0;
+
+        // Set Flash Bank read buffering
+        FLCTL->BANK0_RDCTL = FLCTL->BANK0_RDCTL | (FLCTL_BANK0_RDCTL_BUFD | FLCTL_BANK0_RDCTL_BUFI);
+        FLCTL->BANK1_RDCTL = FLCTL->BANK1_RDCTL & ~(FLCTL_BANK1_RDCTL_BUFD | FLCTL_BANK1_RDCTL_BUFI);
+
+        #elif (__SYSTEM_CLOCK == 48000000)                     // 48 MHz
+        // Switches LDO VCORE0 to LDO VCORE1; mandatory for 48 MHz setting
+        while((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+        PCM->CTL0 = PCM_CTL0_KEY_VAL | PCM_CTL0_AMR_1;
+        while((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+
+        // Switches LDO VCORE1 to DCDC VCORE1 if requested
+        #if __REGULATOR
+        while((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+        PCM->CTL0 = PCM_CTL0_KEY_VAL | PCM_CTL0_AMR_5;
+        while((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+        #endif
+
+        // 1 flash wait states (BANK0 VCORE1 max is 16 MHz, BANK1 VCORE1 max is 32 MHz)
+        FLCTL->BANK0_RDCTL = (FLCTL->BANK0_RDCTL & ~FLCTL_BANK0_RDCTL_WAIT_MASK) | FLCTL_BANK0_RDCTL_WAIT_1;
+        FLCTL->BANK1_RDCTL = (FLCTL->BANK1_RDCTL & ~FLCTL_BANK1_RDCTL_WAIT_MASK) | FLCTL_BANK1_RDCTL_WAIT_1;
+
+        // DCO = 48 MHz; MCLK = source
+        CS->KEY = CS_KEY_VAL;                                  // Unlock CS module for register access
+        CS->CTL0 = CS_CTL0_DCORSEL_5;                          // Set DCO to 48MHz
+        CS->CTL1 = (CS->CTL1 & ~(CS_CTL1_SELM_MASK | CS_CTL1_DIVM_MASK)) | CS_CTL1_SELM__DCOCLK;
+                                                               // Select MCLK as DCO source
+        CS->KEY = 0;
+
+        // Set Flash Bank read buffering
+        FLCTL->BANK0_RDCTL = FLCTL->BANK0_RDCTL | (FLCTL_BANK0_RDCTL_BUFD | FLCTL_BANK0_RDCTL_BUFI);
+        FLCTL->BANK1_RDCTL = FLCTL->BANK1_RDCTL | (FLCTL_BANK1_RDCTL_BUFD | FLCTL_BANK1_RDCTL_BUFI);
+        #endif
 
     /* Jump to the CCS C Initialization Routine. */
     __asm("    .global _c_int00\n"

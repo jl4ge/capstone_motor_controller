@@ -5,7 +5,30 @@
  *      Author: jonat
  */
 
+/* Include statements */
 #include <StepperMotor.h>
+
+StepperMotor::StepperMotor() {
+    /* Loads the ports to be zero by default */
+    enableOut = 0;
+    dirOut = 0;
+    stepOut = 0;
+    resetOut = 0;
+    sleepOut = 0;
+    ms1Out = 0;
+    ms2Out = 0;
+    ms3Out = 0;
+    faultIn = 0;
+    enablePin = 0;
+    dirPin = 0;
+    stepPin = 0;
+    resetPin = 0;
+    faultPin = 0;
+    sleepPin = 0;
+    ms1Pin = 0;
+    ms2Pin = 0;
+    ms3Pin = 0;
+}
 
 /* Initializes the Stepper motor based given the pins and ports. */
 StepperMotor::StepperMotor(uint8_t * enableDir,
@@ -41,7 +64,7 @@ StepperMotor::StepperMotor(uint8_t * enableDir,
                            uint8_t * faultIn,
                            uint8_t * faultRen) {
 
-    /* Sets up the ports */
+    /* Loads the ports */
     this->enableOut = enableOut;
     this->dirOut = dirOut;
     this->stepOut = stepOut;
@@ -53,7 +76,7 @@ StepperMotor::StepperMotor(uint8_t * enableDir,
 
     this->faultIn = faultIn;
 
-    /* Sets up the pins */
+    /* Loads the pins */
     this->enablePin = enablePin;
     this->dirPin = dirPin;
     this->stepPin = stepPin;
@@ -81,10 +104,18 @@ StepperMotor::StepperMotor(uint8_t * enableDir,
 
     /* Gives the motors initial conditions. */
     wakeUp();
-    dissable();
+    enable();
     resetDisable();
-    setStepMode(QuarterStep);
+    setStepMode(HalfStep);
 
+
+    /* Resets the location to be zeroed. */
+    // TODO -- Fix later
+//    reset();
+
+    /* TODO -- Remove after reset with limits is added. */
+    position = 0;
+    state = Stopped;
 }
 
 /* Wakes the motor driver up from sleep. */
@@ -99,12 +130,14 @@ void StepperMotor::sleep() {
 
 /* Enables the motor driver. */
 void StepperMotor::enable() {
-    *enableOut = *enableOut | enablePin;
+    /* Pin is active low */
+    *enableOut = *enableOut & ~enablePin;
 }
 
 /* Disables the motor driver. */
 void StepperMotor::dissable() {
-    *enableOut = *enableOut & ~enablePin;
+    /* Pin is active low */
+    *enableOut = *enableOut | enablePin;
 }
 
 /* Enables the reset pin on the motor driver. */
@@ -120,6 +153,8 @@ void StepperMotor::resetDisable() {
 /* Changes the motor driver stepping mode. */
 void StepperMotor::setStepMode(SteppingModes mode) {
     /* Sets the MS1 pins to correspond to stepping mode. */
+    #if MOTOR_DRIVER == A5984
+
     switch (mode) {
         case FullStep:
             *ms1Out = *ms1Out & ~ms1Pin;
@@ -158,6 +193,44 @@ void StepperMotor::setStepMode(SteppingModes mode) {
             *ms3Out = *ms3Out | ms3Pin;
             break;
     }
+
+    #elif MOTOR_DRIVER == A4988
+
+    switch (mode) {
+        case FullStep:
+            *ms1Out = *ms1Out & ~ms1Pin;
+            *ms2Out = *ms2Out & ~ms2Pin;
+            *ms3Out = *ms3Out & ~ms3Pin;
+            break;
+        case HalfStep:
+            *ms1Out = *ms1Out | ms1Pin;
+            *ms2Out = *ms2Out & ~ms2Pin;
+            *ms3Out = *ms3Out & ~ms3Pin;
+            break;
+        case QuarterStep:
+            *ms1Out = *ms1Out & ~ms1Pin;
+            *ms2Out = *ms2Out | ms2Pin;
+            *ms3Out = *ms3Out & ~ms3Pin;
+            break;
+        case EighthStep:
+            *ms1Out = *ms1Out | ms1Pin;
+            *ms2Out = *ms2Out | ms2Pin;
+            *ms3Out = *ms3Out & ~ms3Pin;
+            break;
+        case SixteenthStep:
+            *ms1Out = *ms1Out | ms1Pin;
+            *ms2Out = *ms2Out | ms2Pin;
+            *ms3Out = *ms3Out | ms3Pin;
+            break;
+        default:
+            /* Defaults to quarter step */
+            *ms1Out = *ms1Out & ~ms1Pin;
+            *ms2Out = *ms2Out | ms2Pin;
+            *ms3Out = *ms3Out & ~ms3Pin;
+            break;
+    }
+
+    #endif
 }
 
 /* Gets the fault state */
@@ -183,4 +256,94 @@ void StepperMotor::dirSet() {
 /* Disables the dir pin */
 void StepperMotor::dirReset() {
     *dirOut = *dirOut & ~dirPin;
+}
+
+/* Toggles the dir pin */
+void StepperMotor::dirToggle() {
+    *dirOut = *dirOut ^ dirPin;
+}
+
+/* Gets the motor to go to its limits. */
+void StepperMotor::resetLimits() {
+    state = Resetting;
+}
+
+/* This function is called when the limit switch has been hit. */
+void StepperMotor::hitLimit() {
+    state = Stopped;
+    position = 0;
+}
+
+/* Goes to a location. */
+void StepperMotor::goTo(int32_t coordinate) {
+    /* TODO -- Add checking to make sure the motor does not exceed limits. */
+    if (coordinate < position) {
+        destination = coordinate;
+        state = MovingBackward;
+    } else {
+        destination = coordinate;
+        state = MovingForward;
+    }
+}
+
+/* Goes a relative distance from the current location. */
+void StepperMotor::go(int32_t increment) {
+    /* TODO -- Add checking to make sure the motor does not exceed limits. */
+    if (increment < 0) {
+        destination = destination + increment;
+        state = MovingBackward;
+    } else {
+        destination = destination + increment;
+        state = MovingForward;
+    }
+}
+
+/* Timer Interrupt function */
+void StepperMotor::tick() {
+    switch (state) {
+    case Stopped:
+        /* Do nothing if it is stopped. */
+        break;
+    case Resetting:
+        /* Moves backward until the limit switch is triggered. */
+        dirReset();
+        stepEnable();
+        stepDisable();
+        break;
+    case MovingForward:
+        /* Move forward until the you reach the destination. */
+        if (position == destination) {
+            state = Stopped;
+        } else {
+            dirSet();
+            stepEnable();
+            stepDisable();
+            position += 1;
+        }
+        break;
+    case MovingBackward:
+        /* Move backward until the you reach the destination. */
+        if (position == destination) {
+            state = Stopped;
+        } else {
+            dirReset();
+            stepEnable();
+            stepDisable();
+            position -= 1;
+        }
+        break;
+    default:
+        state = Stopped;
+        break;
+    }
+}
+
+/* Returns the motor state. */
+StepperMotorStates StepperMotor::getState() {
+    return state;
+}
+
+/* Returns whether or not the motor is moving. */
+bool StepperMotor::isMoving() {
+    return state != Stopped;
 }
