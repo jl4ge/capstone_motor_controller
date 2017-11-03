@@ -10,6 +10,7 @@
 #include "StepperMotor.h"
 #include "StepperMotorTimer.h"
 #include "Electromagnet.h"
+#include "LimitSwitchs.h"
 
 /* Function prototypes */
 void ConfigureClockModule();
@@ -58,6 +59,19 @@ void main(void) {
 	StepperMotor MotorY;
 	StepperMotor MotorZ;
 
+	LimitSwitchs switches = LimitSwitchs((uint8_t) BIT1, // uint8_t xPin,
+	                                     (uint8_t) BIT0, // uint8_t yPin,
+	                                     (uint8_t *) &P4DIR, // uint8_t * xDir,
+	                                     (uint8_t *) &P4DIR, // uint8_t * yDir,
+	                                     (uint8_t *) &P4IN, // uint8_t * xIn,
+	                                     (uint8_t *) &P4IN, // uint8_t * yIn,
+	                                     (uint8_t *) &P4IE, // uint8_t * xIE,
+	                                     (uint8_t *) &P4IE, // uint8_t * yIE,
+	                                     (uint8_t *) &P4IFG, // uint8_t * xIFG,
+	                                     (uint8_t *) &P4IFG, // uint8_t * yIFG,
+	                                     &MotorX,
+	                                     &MotorY);
+
 	/* Sets up the motor driver timer. */
 	StepperMotorTimer timer = StepperMotorTimer(&MotorX, &MotorY, &MotorZ);
 
@@ -66,9 +80,19 @@ void main(void) {
 
 	/* Has the motor move in a pattern. */
 	while (true) {
-	    MotorX.goTo(0);
+	    while (MotorX.isMoving());
+
+	    MotorX.goTo(200);
+
+	    while (MotorX.isMoving());
+
+        MotorX.goTo(1500);
 
         while (MotorX.isMoving());
+
+        MotorX.goTo(1000);
+
+	    while (MotorX.isMoving());
 
         MotorX.goTo(3000);
 
@@ -78,13 +102,11 @@ void main(void) {
 
         while (MotorX.isMoving());
 
-        MotorX.goTo(2500);
+        MotorX.goTo(1900);
 
         while (MotorX.isMoving());
 
-        MotorX.goTo(9000);
-
-        while (MotorX.isMoving());
+        MotorX.goTo(5000);
 	}
 }
 

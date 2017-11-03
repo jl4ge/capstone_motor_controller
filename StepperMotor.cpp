@@ -106,16 +106,20 @@ StepperMotor::StepperMotor(uint8_t * enableDir,
     wakeUp();
     enable();
     resetDisable();
-    setStepMode(HalfStep);
+    setStepMode(EighthStep);
+    time = 0;
 
 
     /* Resets the location to be zeroed. */
     // TODO -- Fix later
-//    reset();
+    resetLimits();
+//    while(isMoving());
+
+//    setStepMode(HalfStep);
 
     /* TODO -- Remove after reset with limits is added. */
-    position = 0;
-    state = Stopped;
+//    position = 0;
+//    state = Stopped;
 }
 
 /* Wakes the motor driver up from sleep. */
@@ -265,6 +269,7 @@ void StepperMotor::dirToggle() {
 
 /* Gets the motor to go to its limits. */
 void StepperMotor::resetLimits() {
+    setStepMode(EighthStep);
     state = Resetting;
 }
 
@@ -272,11 +277,15 @@ void StepperMotor::resetLimits() {
 void StepperMotor::hitLimit() {
     state = Stopped;
     position = 0;
+    setStepMode(HalfStep);
+    resetEnable();
+    resetDisable();
 }
 
 /* Goes to a location. */
 void StepperMotor::goTo(int32_t coordinate) {
     /* TODO -- Add checking to make sure the motor does not exceed limits. */
+    start = position;
     if (coordinate < position) {
         destination = coordinate;
         state = MovingBackward;
@@ -289,6 +298,7 @@ void StepperMotor::goTo(int32_t coordinate) {
 /* Goes a relative distance from the current location. */
 void StepperMotor::go(int32_t increment) {
     /* TODO -- Add checking to make sure the motor does not exceed limits. */
+    start = position;
     if (increment < 0) {
         destination = destination + increment;
         state = MovingBackward;
@@ -306,19 +316,63 @@ void StepperMotor::tick() {
         break;
     case Resetting:
         /* Moves backward until the limit switch is triggered. */
-        dirReset();
-        stepEnable();
-        stepDisable();
+        time++;
+        if (time >= 10) {
+            time = 0;
+            dirReset();
+            stepEnable();
+            stepDisable();
+        }
         break;
     case MovingForward:
         /* Move forward until the you reach the destination. */
         if (position == destination) {
             state = Stopped;
         } else {
-            dirSet();
-            stepEnable();
-            stepDisable();
-            position += 1;
+            /* Determines the distance from the destination and start. */
+            uint32_t endDest = destination - position;
+            uint32_t startDest = position - start;
+
+            /* Runs the motor with acceleration so it does not jerk around. */
+            if (endDest < STEP_ACCEL_DIST && startDest >= STEP_ACCEL_DIST) {
+                time++;
+                if (time >= (STEP_ACCEL_SPEED - endDest/MAX_STEP_SPEED)) {
+                    time = 0;
+                    dirSet();
+                    stepEnable();
+                    stepDisable();
+                    position += 1;
+                }
+
+            } else if (endDest >= STEP_ACCEL_DIST && startDest < STEP_ACCEL_DIST) {
+                time++;
+                if (time >= (STEP_ACCEL_SPEED - startDest/MAX_STEP_SPEED)) {
+                    time = 0;
+                    dirSet();
+                    stepEnable();
+                    stepDisable();
+                    position += 1;
+                }
+            } else if (endDest <= STEP_ACCEL_DIST && startDest < STEP_ACCEL_DIST) {
+                uint32_t smallest = (endDest < startDest) ? endDest : startDest;
+                time++;
+                if (time >= (STEP_ACCEL_SPEED - smallest/MAX_STEP_SPEED)) {
+                    time = 0;
+                    dirSet();
+                    stepEnable();
+                    stepDisable();
+                    position += 1;
+                }
+            } else {
+                time++;
+                if (time >= MAX_STEP_SPEED) {
+                    time = 0;
+                    dirSet();
+                    stepEnable();
+                    stepDisable();
+                    position += 1;
+                }
+            }
         }
         break;
     case MovingBackward:
@@ -326,10 +380,50 @@ void StepperMotor::tick() {
         if (position == destination) {
             state = Stopped;
         } else {
-            dirReset();
-            stepEnable();
-            stepDisable();
-            position -= 1;
+            /* Determines the distance from the destination and start. */
+            uint32_t endDest = position - destination;
+            uint32_t startDest = start - position;
+
+            /* Runs the motor with acceleration so it does not jerk around. */
+            if (endDest < STEP_ACCEL_DIST && startDest >= STEP_ACCEL_DIST) {
+                time++;
+                if (time >= (STEP_ACCEL_SPEED - endDest/MAX_STEP_SPEED)) {
+                    time = 0;
+                    dirReset();
+                    stepEnable();
+                    stepDisable();
+                    position -= 1;
+                }
+
+            } else if (endDest >= STEP_ACCEL_DIST && startDest < STEP_ACCEL_DIST) {
+                time++;
+                if (time >= (STEP_ACCEL_SPEED - startDest/MAX_STEP_SPEED)) {
+                    time = 0;
+                    dirReset();
+                    stepEnable();
+                    stepDisable();
+                    position -= 1;
+                }
+            } else if (endDest <= STEP_ACCEL_DIST && startDest < STEP_ACCEL_DIST) {
+                uint32_t smallest = (endDest < startDest) ? endDest : startDest;
+                time++;
+                if (time >= (STEP_ACCEL_SPEED - smallest/MAX_STEP_SPEED)) {
+                    time = 0;
+                    dirReset();
+                    stepEnable();
+                    stepDisable();
+                    position -= 1;
+                }
+            } else {
+                time++;
+                if (time >= MAX_STEP_SPEED) {
+                    time = 0;
+                    dirReset();
+                    stepEnable();
+                    stepDisable();
+                    position -= 1;
+                }
+            }
         }
         break;
     default:

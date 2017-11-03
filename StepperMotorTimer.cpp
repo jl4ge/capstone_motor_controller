@@ -43,8 +43,8 @@ StepperMotorTimer::StepperMotorTimer(StepperMotor * MotorX, StepperMotor * Motor
     /* Enables the interrupts on the TACCR0 register */
     TA0CCTL0 |= CCIE;
 
-    /* Sets the timer interrupt to trigger every 1ms. */
-    TA0CCR0 = 3000;
+    /* Sets the timer interrupt to trigger every 100us. */
+    TA0CCR0 = 300;
 }
 
 /* Starts the timer. */

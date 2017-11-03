@@ -36,6 +36,10 @@ typedef enum {
     Stopped, Resetting, MovingForward, MovingBackward
 } StepperMotorStates;
 
+#define STEP_ACCEL_DIST     300
+#define MAX_STEP_SPEED      8
+#define STEP_ACCEL_SPEED    STEP_ACCEL_DIST/MAX_STEP_SPEED + MAX_STEP_SPEED
+
 class StepperMotor {
 public:
     /* Constructors */
@@ -130,9 +134,13 @@ private:
 
     /* Motor motion attributes */
     int32_t position;
+    int32_t start;
     int32_t destination;
     int32_t max;
     StepperMotorStates state;
+
+    /* Motor Speed attributes */
+    int32_t time;
 };
 
 #endif /* STEPPERMOTOR_H_ */

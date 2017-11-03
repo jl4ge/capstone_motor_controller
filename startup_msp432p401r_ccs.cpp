@@ -43,6 +43,7 @@
 #include <stdint.h>
 #include "msp.h"
 #include "StepperMotorTimer.h"
+#include "LimitSwitchs.h"
 
 /*--------------------- Configuration Instructions ----------------------------
    1. If you prefer to halt the Watchdog Timer, set __HALT_WDT to 1:
@@ -228,7 +229,7 @@ extern void (* const interruptVectors[])(void) =
     PORT1_IRQHandler,                      /* Port1 Interrupt           */
     PORT2_IRQHandler,                      /* Port2 Interrupt           */
     PORT3_IRQHandler,                      /* Port3 Interrupt           */
-    PORT4_IRQHandler,                      /* Port4 Interrupt           */
+    LimitSwitchs::limitHit,                      /* Port4 Interrupt           */
     PORT5_IRQHandler,                      /* Port5 Interrupt           */
     PORT6_IRQHandler                       /* Port6 Interrupt           */
 };
