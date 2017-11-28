@@ -98,16 +98,18 @@ StepperMotor::StepperMotor(uint8_t * enableDir,
     *ms3Dir = *ms3Dir | this->ms3Pin;
 
     /* Sets the fault pin as an input with no pull up resistors. */
-    *faultDir = *faultDir & ~this->faultPin;
-    *faultOut = *faultOut & ~this->faultPin;
-    *faultRen = *faultRen & ~this->faultPin;
+    *faultDir = *faultDir | this->faultPin;
+    *faultOut = *faultOut | this->faultPin;
+//    *faultRen = *faultRen & ~this->faultPin;
 
     /* Gives the motors initial conditions. */
     wakeUp();
-    enable();
+    resetEnable();
     resetDisable();
-    setStepMode(EighthStep);
+    enable();
+    setStepMode(ThirtysecondStep);
     time = 0;
+    isResetting = false;
 
 
     /* Resets the location to be zeroed. */
@@ -271,15 +273,19 @@ void StepperMotor::dirToggle() {
 void StepperMotor::resetLimits() {
     setStepMode(EighthStep);
     state = Resetting;
+    isResetting = true;
 }
 
 /* This function is called when the limit switch has been hit. */
 void StepperMotor::hitLimit() {
-    state = Stopped;
-    position = 0;
-    setStepMode(HalfStep);
-    resetEnable();
-    resetDisable();
+    if (isResetting) {
+        state = Stopped;
+        position = 0;
+        setStepMode(HalfStep);
+        resetEnable();
+        resetDisable();
+        isResetting = false;
+    }
 }
 
 /* Goes to a location. */

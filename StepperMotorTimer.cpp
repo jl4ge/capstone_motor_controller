@@ -64,8 +64,8 @@ void StepperMotorTimer::TA0_0(void) {
 
     /* Steps the motors if they are moving. */
     MotorX->tick();
-//    MotorY->tick();
-//    MotorZ->tick();
+    MotorY->tick();
+    MotorZ->tick();
 }
 
 /* TA0_N ISR */

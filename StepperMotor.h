@@ -36,8 +36,8 @@ typedef enum {
     Stopped, Resetting, MovingForward, MovingBackward
 } StepperMotorStates;
 
-#define STEP_ACCEL_DIST     300
-#define MAX_STEP_SPEED      8
+#define STEP_ACCEL_DIST     150
+#define MAX_STEP_SPEED      5
 #define STEP_ACCEL_SPEED    STEP_ACCEL_DIST/MAX_STEP_SPEED + MAX_STEP_SPEED
 
 class StepperMotor {
@@ -138,6 +138,7 @@ private:
     int32_t destination;
     int32_t max;
     StepperMotorStates state;
+    bool isResetting;
 
     /* Motor Speed attributes */
     int32_t time;

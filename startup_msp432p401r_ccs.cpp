@@ -44,6 +44,7 @@
 #include "msp.h"
 #include "StepperMotorTimer.h"
 #include "LimitSwitchs.h"
+#include "ServoMotorTimer.h"
 
 /*--------------------- Configuration Instructions ----------------------------
    1. If you prefer to halt the Watchdog Timer, set __HALT_WDT to 1:
@@ -201,8 +202,8 @@ extern void (* const interruptVectors[])(void) =
     COMP_E1_IRQHandler,                    /* COMP_E1 Interrupt         */
     StepperMotorTimer::TA0_0,                      /* TA0_0 Interrupt           */
     StepperMotorTimer::TA0_N,                      /* TA0_N Interrupt           */
-    TA1_0_IRQHandler,                      /* TA1_0 Interrupt           */
-    TA1_N_IRQHandler,                      /* TA1_N Interrupt           */
+    ServoMotorTimer::TA1_0,                      /* TA1_0 Interrupt           */
+    ServoMotorTimer::TA1_N,                      /* TA1_N Interrupt           */
     TA2_0_IRQHandler,                      /* TA2_0 Interrupt           */
     TA2_N_IRQHandler,                      /* TA2_N Interrupt           */
     TA3_0_IRQHandler,                      /* TA3_0 Interrupt           */
@@ -229,8 +230,8 @@ extern void (* const interruptVectors[])(void) =
     PORT1_IRQHandler,                      /* Port1 Interrupt           */
     PORT2_IRQHandler,                      /* Port2 Interrupt           */
     PORT3_IRQHandler,                      /* Port3 Interrupt           */
-    LimitSwitchs::limitHit,                      /* Port4 Interrupt           */
-    PORT5_IRQHandler,                      /* Port5 Interrupt           */
+    PORT4_IRQHandler,                      /* Port4 Interrupt           */
+    LimitSwitchs::limitHit,                      /* Port5 Interrupt           */
     PORT6_IRQHandler                       /* Port6 Interrupt           */
 };
 
