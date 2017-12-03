@@ -33,6 +33,10 @@ void ServoMotor::stop() {
     motorState = Motionless;
 }
 
+bool ServoMotor::isMoving() {
+    return motorState != Motionless;
+}
+
 void ServoMotor::tick() {
     switch(motorState) {
     case Motionless:

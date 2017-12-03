@@ -20,13 +20,17 @@
 void ConfigureClockModule();
 
 void main(void) {
+    /***************
+     * SETUP
+     ***************/
+
     /* Stops the watchdog timer */
 	WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;
 
 	/* Sets the clock to run at 24 MHz. */
 	ConfigureClockModule();
 
-	/* Configures the motors with pins. */
+	/* Configures the motors with limit switches. */
 	StepperMotor MotorX = StepperMotor((uint8_t *) &P7DIR, //uint8_t * enableDir,
 	                                        (uint8_t *) &P7DIR, //uint8_t * dirDir,
 	                                        (uint8_t *) &P9DIR, //uint8_t * stepDir,
@@ -145,40 +149,34 @@ void main(void) {
 	                                     &MotorY,
 	                                     &MotorZ);
 
-	Electromagnet emag = Electromagnet((uint8_t *) &P5DIR, // uint8_t * ctlDir,
-	                                   (uint8_t *) &P5OUT, // uint8_t * ctlOut,
-	                                   (uint8_t) BIT6); // uint8_t ctlPin);
-
 	/* Sets up the motor driver timer. */
 	StepperMotorTimer stepperTimer = StepperMotorTimer(&MotorX, &MotorY, &MotorZ);
 
-	/* Sets up the servo motors with their timer. */
+	/* Sets up the electromagnets */
+	Electromagnet pickup = Electromagnet((uint8_t *) &P4DIR, // uint8_t * ctlDir,
+	                                   (uint8_t *) &P4OUT, // uint8_t * ctlOut,
+	                                   (uint8_t) BIT6); // uint8_t ctlPin);
+
+	Electromagnet flipperEmag = Electromagnet((uint8_t *) &P4DIR, // uint8_t * ctlDir,
+	                                   (uint8_t *) &P4OUT, // uint8_t * ctlOut,
+	                                   (uint8_t) BIT7); // uint8_t ctlPin);
+
+	/* Sets up the servo motor with their timer. */
 	ServoMotor flipper = ServoMotor((uint8_t *) &P2DIR, (uint8_t *) &P2OUT, BIT6);
-	ServoMotor rotator = ServoMotor((uint8_t *) &P2DIR, (uint8_t *) &P2OUT, BIT7);
-	ServoMotorTimer servoTimer = ServoMotorTimer(&flipper, &rotator);
+	ServoMotorTimer servoTimer = ServoMotorTimer(&flipper);
 
-	TileMover mover = TileMover(&MotorX, &MotorY, &MotorZ, &emag);
-
-	emag.TurnOn();
+	TileMover mover = TileMover(&MotorX, &MotorY, &MotorZ, &flipper, &pickup, &flipperEmag);
 
 	configureUART(&mover);
 
 	/* Enables Interrupts */
 	__enable_interrupts();
 
+	/***************
+	 * MOTOR PROGRAM
+	 ***************/
+
 	command currentCommand;
-
-	rotator.spin(true);
-	flipper.spin(false);
-
-	/* Waits until the motor reaches the limit. */
-	while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
-
-	/* Moves the motor a little bit away from the limit. */
-    MotorX.goTo(100);
-    MotorY.goTo(100);
-    MotorZ.goTo(100);
-    while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
 
 //	while (true) {
 //	    /* TODO -- Wait for current command to finish */
@@ -187,56 +185,118 @@ void main(void) {
 //
 //	    mover.runCommand(currentCommand);
 //	}
+//	while (mover.isBusy());
+
+//	int32_t x = 11500;
+//	int32_t y = 6500;
+//	int32_t z = 1000;
+//
+////	x = 100;
+////	y = 100;
+////	z = 100;
+//	while (true) {
+//	    pickup.TurnOn();
+//	    while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
+//	    while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
+//	    MotorX.goTo(x);
+//	    MotorY.goTo(y);
+//	    MotorZ.goTo(z);
+//	    pickup.TurnOff();
+//	}
+
+
 
 	/* Has the motor move in a pattern. */
 
     command c;
-    c.command = dropOffNewTile;
+//    c.command = pickupNewTile;
+//    c.parameters[0] = 1;
+//    c.parameters[1] = 2;
+
+//    c.command = makeTileMoves;
+//    c.parameters[0] = 2;
+//
+//    c.parameters[1] = 2;
+//    c.parameters[2] = 3;
+//
+//    c.parameters[3] = 14;
+//    c.parameters[4] = 14;
+//
+//    c.parameters[5] = 3;
+//    c.parameters[6] = 4;
+//
+//    c.parameters[7] = 0;
+//    c.parameters[8] = 0;
+
+    c.command = getNewTiles;
     c.parameters[0] = 1;
-    c.parameters[1] = 2;
-	while (true) {
 
-	    while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
+    c.parameters[1] = 0;
+    c.parameters[2] = 0;
+    c.parameters[3] = 0;
+//
+//    c.parameters[4] = 5;
+//    c.parameters[5] = 3;
+//    c.parameters[6] = 4;
+//
+//    c.parameters[7] = 0;
+//    c.parameters[8] = 1;
+//    c.parameters[9] = 2;
 
-	    c.parameters[0] = 1;
-	    c.parameters[1] = 2;
-	    mover.runCommand(c);
 
-        while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
+    while (true) {
 
-        c.parameters[0] = 10;
-        c.parameters[1] = 13;
-        mover.runCommand(c);
 
-        while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
+        pickup.TurnOff();
+//        flipperEmag.TurnOn();
+	    while (mover.IsBusy());
+	    pickup.TurnOn();
 
-        c.parameters[0] = 3;
-        c.parameters[1] = 7;
-        mover.runCommand(c);
+//	    pickup.TurnOff();
+//	    flipperEmag.TurnOff();
+//
+//	    c.parameters[0] = 1;
+//	    c.parameters[1] = 2;
+//	    mover.runCommand(c);
 
-        while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
-
-        c.parameters[0] = 7;
-        c.parameters[1] = 3;
-        mover.runCommand(c);
-
-        while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
-
-        c.parameters[0] = 0;
-        c.parameters[1] = 0;
-        mover.runCommand(c);
-
-        while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
-
-        c.parameters[0] = 14;
-        c.parameters[1] = 14;
-        mover.runCommand(c);
-
-        while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
-
-        c.parameters[0] = 4;
-        c.parameters[1] = 12;
-        mover.runCommand(c);
+//
+//	    while (mover.IsBusy());
+//
+//        c.parameters[0] = 10;
+//        c.parameters[1] = 13;
+//        c.command = dropOffNewTile;
+//        mover.runCommand(c);
+//
+//        while (mover.IsBusy());
+//
+//        c.parameters[0] = 3;
+//        c.parameters[1] = 7;
+//        c.command = pickupHandTile;
+//        mover.runCommand(c);
+//
+//        while (mover.IsBusy());
+//
+//        c.parameters[0] = 7;
+//        c.parameters[1] = 3;
+//        mover.runCommand(c);
+//
+//        while (mover.IsBusy());
+//
+//        c.parameters[0] = 0;
+//        c.parameters[1] = 0;
+//        mover.runCommand(c);
+//
+//        while (mover.IsBusy());
+//
+//        c.parameters[0] = 14;
+//        c.parameters[1] = 14;
+//        mover.runCommand(c);
+//
+//        while (mover.IsBusy());
+//
+//        c.parameters[0] = 4;
+//        c.parameters[1] = 12;
+//        mover.runCommand(c);
 	}
 }
 

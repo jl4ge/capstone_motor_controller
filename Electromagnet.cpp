@@ -19,15 +19,15 @@ Electromagnet::Electromagnet(uint8_t * ctlDir, uint8_t * ctlOut, uint8_t ctlPin)
     *ctlDir = *ctlDir | ctlPin;
 
     /* Sets the pin to be on and the electromagnet to off. */
-    *ctlOut = *ctlOut | ctlPin;
+    TurnOff();
 }
 
 /* Turns on the electromagnet */
 void Electromagnet::TurnOn() {
-    *ctlOut = *ctlOut & ~ctlPin;
+    *ctlOut = *ctlOut | ctlPin;
 }
 
 /* Turns off the electromagnet */
 void Electromagnet::TurnOff() {
-    *ctlOut = *ctlOut | ctlPin;
+    *ctlOut = *ctlOut & ~ctlPin;
 }

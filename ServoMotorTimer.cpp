@@ -11,17 +11,17 @@
 
 /* Sets the initial motor pointers to null. */
 ServoMotor * ServoMotorTimer::Flipper = 0;
-ServoMotor * ServoMotorTimer::Rotator = 0;
+//ServoMotor * ServoMotorTimer::Rotator = 0;
 
 /* Initializes the timer with provided motors and starts the timer. */
-ServoMotorTimer::ServoMotorTimer(ServoMotor * Flipper, ServoMotor * Rotator) {
+ServoMotorTimer::ServoMotorTimer(ServoMotor * Flipper) {
     /* Sets the internal motors to the ones provided and enforces that only one instance exists. */
     if (this->Flipper == 0) {
         this->Flipper = Flipper;
     }
-    if (this->Rotator == 0) {
-        this->Rotator = Rotator;
-    }
+//    if (this->Rotator == 0) {
+//        this->Rotator = Rotator;
+//    }
 
     /* Enables the timer interrupts */
     NVIC->ISER[0] = 1 << ((TA1_0_IRQn) & 31);
@@ -64,7 +64,7 @@ void ServoMotorTimer::TA1_0(void) {
 
     /* Steps the motors if they are moving. */
     Flipper->tick();
-    Rotator->tick();
+//    Rotator->tick();
 }
 
 /* TA0_N ISR */
@@ -75,7 +75,7 @@ void ServoMotorTimer::TA1_N(void) {
 
     /* Steps the motors if they are moving. */
     Flipper->tick();
-    Rotator->tick();
+//    Rotator->tick();
 }
 
 

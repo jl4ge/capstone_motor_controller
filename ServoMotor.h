@@ -22,6 +22,7 @@ public:
     void spin(bool dir);
     void stop();
     void tick();
+    bool isMoving();
 private:
     uint8_t * motorOut;
     uint8_t motorPin;

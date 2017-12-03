@@ -114,7 +114,7 @@ StepperMotor::StepperMotor(uint8_t * enableDir,
 
     /* Resets the location to be zeroed. */
     // TODO -- Fix later
-    resetLimits();
+//    resetLimits();
 //    while(isMoving());
 
 //    setStepMode(HalfStep);

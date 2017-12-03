@@ -14,7 +14,7 @@
 class ServoMotorTimer {
 public:
     /* Constructors */
-    ServoMotorTimer(ServoMotor * Flipper, ServoMotor * Rotator);
+    ServoMotorTimer(ServoMotor * Flipper);
 
     /* High level functions */
     void startTimer();
@@ -27,7 +27,7 @@ public:
 private:
     /* Motors */
     static ServoMotor * Flipper;
-    static ServoMotor * Rotator;
+//    static ServoMotor * Rotator;
 };
 
 #endif /* SERVOMOTORTIMER_H_ */
