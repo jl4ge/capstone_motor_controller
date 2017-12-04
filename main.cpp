@@ -165,12 +165,12 @@ void main(void) {
 	ServoMotor flipper = ServoMotor((uint8_t *) &P2DIR, (uint8_t *) &P2OUT, BIT6);
 	ServoMotorTimer servoTimer = ServoMotorTimer(&flipper);
 
+    /* Enables Interrupts */
+    __enable_interrupts();
+
 	TileMover mover = TileMover(&MotorX, &MotorY, &MotorZ, &flipper, &pickup, &flipperEmag);
 
 	configureUART(&mover);
-
-	/* Enables Interrupts */
-	__enable_interrupts();
 
 	/***************
 	 * MOTOR PROGRAM
@@ -178,13 +178,14 @@ void main(void) {
 
 	command currentCommand;
 
-//	while (true) {
-//	    /* TODO -- Wait for current command to finish */
-//	    while (!commandReady() || mover.IsBusy());
-//	    currentCommand = getNextCommand();
-//
+	while (true) {
+	    /* TODO -- Wait for current command to finish */
+	    while (!commandReady()); // || mover.IsBusy());
+//	    EUSCI_A2->TXBUF = '6';
+	    currentCommand = getNextCommand();
+
 //	    mover.runCommand(currentCommand);
-//	}
+	}
 //	while (mover.isBusy());
 
 //	int32_t x = 11500;
@@ -208,7 +209,7 @@ void main(void) {
 
 	/* Has the motor move in a pattern. */
 
-    command c;
+//    command c;
 //    c.command = pickupNewTile;
 //    c.parameters[0] = 1;
 //    c.parameters[1] = 2;
@@ -228,12 +229,12 @@ void main(void) {
 //    c.parameters[7] = 0;
 //    c.parameters[8] = 0;
 
-    c.command = getNewTiles;
-    c.parameters[0] = 1;
-
-    c.parameters[1] = 0;
-    c.parameters[2] = 0;
-    c.parameters[3] = 0;
+//    c.command = getNewTiles;
+//    c.parameters[0] = 1;
+//
+//    c.parameters[1] = 0;
+//    c.parameters[2] = 0;
+//    c.parameters[3] = 0;
 //
 //    c.parameters[4] = 5;
 //    c.parameters[5] = 3;
@@ -244,22 +245,14 @@ void main(void) {
 //    c.parameters[9] = 2;
 
 
-    while (true) {
-
-
-        pickup.TurnOff();
-//        flipperEmag.TurnOn();
-	    while (mover.IsBusy());
-	    pickup.TurnOn();
-
-//	    pickup.TurnOff();
-//	    flipperEmag.TurnOff();
+//    while (true) {
 //
-//	    c.parameters[0] = 1;
-//	    c.parameters[1] = 2;
+//
+//        pickup.TurnOff();
+//	    while (mover.IsBusy());
+//	    pickup.TurnOn();
 //	    mover.runCommand(c);
 
-//
 //	    while (mover.IsBusy());
 //
 //        c.parameters[0] = 10;
@@ -297,7 +290,7 @@ void main(void) {
 //        c.parameters[0] = 4;
 //        c.parameters[1] = 12;
 //        mover.runCommand(c);
-	}
+//	}
 }
 
 /* Configures the digitally controlled oscillator to run at 24 MHz. */
