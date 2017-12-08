@@ -35,15 +35,15 @@ ServoMotorTimer::ServoMotorTimer(ServoMotor * Flipper) {
      *
      * So the timer will count up one every 1/3 us.
      */
-    TA1CTL = TASSEL_2 | ID_3 | MC_1 | TAIE | TACLR;
+    TA1CTL = TASSEL_2 | ID_3 | MC_1 | TACLR;
 
     /* Enables the interrupts on the TACCR0 register */
     TA1CCTL0 |= CCIE;
-    TA1CCTL1 |= CCIE;
+//    TA1CCTL1 |= CCIE;
 
-    /* Sets the timer interrupt to trigger every 1000us. */
-    TA1CCR0 = 3000;
-    TA1CCR1 = 1000;
+    /* Sets the timer interrupt to trigger every 2000us. */
+    TA1CCR0 = 4500;
+//    TA1CCR1 = 2250;
 }
 
 /* Starts the timer. */
@@ -60,22 +60,18 @@ void ServoMotorTimer::stopTimer() {
 void ServoMotorTimer::TA1_0(void) {
     /* Clears the capture control register interrupt flag. */
     TA1CCTL0 &= ~CCIFG;
-    TA1CTL &= ~TAIFG;
 
     /* Steps the motors if they are moving. */
-    Flipper->tick();
-//    Rotator->tick();
+    Flipper->tickOn();
 }
 
 /* TA0_N ISR */
 void ServoMotorTimer::TA1_N(void) {
-    /* Clears the capture control register interrupt flag. */
-    TA1CCTL1 &= ~CCIFG;
-
-
-    /* Steps the motors if they are moving. */
-    Flipper->tick();
-//    Rotator->tick();
+//    /* Clears the capture control register interrupt flag. */
+//    TA1CCTL1 &= ~CCIFG;
+//
+//    /* Steps the motors if they are moving. */
+//    Flipper->tickOff();
 }
 
 

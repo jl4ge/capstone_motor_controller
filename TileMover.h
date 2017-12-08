@@ -16,6 +16,8 @@
 #include "StepperMotorTimer.h"
 #include "ServoMotor.h"
 
+#define Z_REST 1800
+
 typedef enum {
     doNothing, getNewTiles, makeTileMoves, getNewTile, makeTileMove, pickupNewTile, pickupHandTile, pickupBoard, pickupRotator, pickupFlipper, dropOffNewTile, dropOffHand, dropOffBoard, dropOffRotator, dropOffFlipper, rotateTile, flipTile, goZPos, turnOnMagnet, turnOffMagnet, isBusy
 } commandType;
@@ -67,8 +69,8 @@ private:
 
     static int32_t handX[7];
     static int32_t handY[7];
-    static int32_t newTileX[15][7];
-    static int32_t newTileY[15][7];
+    static int32_t newTileX[7][15];
+    static int32_t newTileY[7][15];
     static int32_t boardX[15][15];
     static int32_t boardY[15][15];
     static int32_t z[6];

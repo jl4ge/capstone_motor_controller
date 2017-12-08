@@ -62,7 +62,8 @@ StepperMotor::StepperMotor(uint8_t * enableDir,
                            uint8_t ms3Pin,
 
                            uint8_t * faultIn,
-                           uint8_t * faultRen) {
+                           uint8_t * faultRen,
+                           SteppingModes mode) {
 
     /* Loads the ports */
     this->enableOut = enableOut;
@@ -86,6 +87,7 @@ StepperMotor::StepperMotor(uint8_t * enableDir,
     this->ms1Pin = ms1Pin;
     this->ms2Pin = ms2Pin;
     this->ms3Pin = ms3Pin;
+    this->mode = mode;
 
     /* Sets the direction of each port pin as an output. */
     *enableDir = *enableDir | this->enablePin;
@@ -281,9 +283,10 @@ void StepperMotor::hitLimit() {
     if (isResetting) {
         state = Stopped;
         position = 0;
-        setStepMode(HalfStep);
+        setStepMode(mode);
         resetEnable();
         resetDisable();
+
         isResetting = false;
     }
 }

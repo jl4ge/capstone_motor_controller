@@ -19,14 +19,17 @@ class ServoMotor {
 public:
     ServoMotor(uint8_t * motorDir, uint8_t * motorOut, uint8_t motorPin);
 
-    void spin(bool dir);
+    void spin(bool dir, int32_t length);
     void stop();
-    void tick();
+    void tickOn();
+    void tickOff();
     bool isMoving();
 private:
     uint8_t * motorOut;
     uint8_t motorPin;
     ServoMotorState motorState;
+    int32_t length;
+    int32_t turns;
 };
 
 #endif /* SERVOMOTOR_H_ */

@@ -159,8 +159,8 @@ void EUSCIA2_IRQHandler(void) {
                 break;
             case 20:
                 currentCommand.command = isBusy;
-                EUSCI_A2->TXBUF = 0;//mover->IsBusy();
-//                isReady = false;
+                EUSCI_A2->TXBUF = (mover->IsBusy()) ? 1 : 0;
+                isReady = false;
                 break;
             default:
                 break;

@@ -62,7 +62,8 @@ void main(void) {
 	                                        (uint8_t) BIT5, //uint8_t ms3Pin,
 
 	                                        (uint8_t *) &P6IN, //uint8_t * faultIn,
-	                                        (uint8_t *) &P6REN); //uint8_t * faultRen);
+	                                        (uint8_t *) &P6REN, //uint8_t * faultRen,
+	                                        HalfStep);
 
 	StepperMotor MotorY = StepperMotor((uint8_t *) &P9DIR, //uint8_t * enableDir,
                           (uint8_t *) &P8DIR, //uint8_t * dirDir,
@@ -95,7 +96,8 @@ void main(void) {
                           (uint8_t) BIT7, //uint8_t ms3Pin,
 
                           (uint8_t *) &P6IN, //uint8_t * faultIn,
-                          (uint8_t *) &P6REN); //uint8_t * faultRen);
+                          (uint8_t *) &P6REN, //uint8_t * faultRen,
+	                       HalfStep);
 
 	StepperMotor MotorZ = StepperMotor((uint8_t *) &P10DIR, //uint8_t * enableDir,
                           (uint8_t *) &P7DIR, //uint8_t * dirDir,
@@ -128,7 +130,8 @@ void main(void) {
                           (uint8_t) BIT1, //uint8_t ms3Pin,
 
                           (uint8_t *) &P5IN, //uint8_t * faultIn,
-                          (uint8_t *) &P5REN); //uint8_t * faultRen);
+                          (uint8_t *) &P5REN, //uint8_t * faultRen
+                          EighthStep);
 
 	LimitSwitchs switches = LimitSwitchs((uint8_t) BIT0, // uint8_t xPin,
 	                                     (uint8_t) BIT1, // uint8_t yPin,
@@ -180,81 +183,161 @@ void main(void) {
 
 	while (true) {
 	    /* TODO -- Wait for current command to finish */
-	    while (!commandReady()); // || mover.IsBusy());
-//	    EUSCI_A2->TXBUF = '6';
-	    currentCommand = getNextCommand();
+	  while (!commandReady());// || mover.IsBusy());
+	  currentCommand = getNextCommand();
 
-//	    mover.runCommand(currentCommand);
+      MotorX.wakeUp();
+      MotorY.wakeUp();
+      MotorZ.wakeUp();
+	  mover.runCommand(currentCommand);
+      MotorX.sleep();
+      MotorY.sleep();
+      MotorZ.sleep();
 	}
-//	while (mover.isBusy());
 
-//	int32_t x = 11500;
+
+//	while (mover.isBusy());
+//	command c;
+//    c.command = pickupBoard;
+//    c.parameters[0] = 7;
+//    c.parameters[1] = 7;
+//    mover.runCommand(c);
+
+//    flipper.spin(true, 700);
+//    while(flipper.isMoving());
+//    while(flipper.isMoving());
+//    flipperEmag.TurnOn();
+//
+//	flipper.spin(false, 4000);
+//	while(flipper.isMoving());
+//	while(flipper.isMoving());
+//
+//	flipperEmag.TurnOff();
+
+
+//	MotorX.sleep();
+//    MotorY.sleep();
+////    MotorZ.sleep();
+//
+//    MotorZ.goTo(4400);
+//    while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
+//    while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
+//    pickup.TurnOn();
+//
+//    MotorZ.goTo(Z_REST);
+//    while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
+//    while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
+
+
+//	int32_t x = 11280;
 //	int32_t y = 6500;
 //	int32_t z = 1000;
 //
-////	x = 100;
-////	y = 100;
-////	z = 100;
+//	x = 235;
+//	y = 2430;
+//	z = 550;
+//
+	command c;
+
 //	while (true) {
-//	    pickup.TurnOn();
+//	    for (int i = 0; i < 15; i++) {
+//	        for (int j = 0; j < 15; j++) {
+//	    MotorX.wakeUp();
+//	    MotorY.wakeUp();
+//	    MotorZ.wakeUp();
 //	    while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
 //	    while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
-//	    MotorX.goTo(x);
-//	    MotorY.goTo(y);
-//	    MotorZ.goTo(z);
-//	    pickup.TurnOff();
-//	}
-
-
-
-	/* Has the motor move in a pattern. */
-
-//    command c;
-//    c.command = pickupNewTile;
-//    c.parameters[0] = 1;
-//    c.parameters[1] = 2;
-
-//    c.command = makeTileMoves;
-//    c.parameters[0] = 2;
 //
-//    c.parameters[1] = 2;
-//    c.parameters[2] = 3;
+////	    c.command = getNewTiles;
+////        c.parameters[0] = 1;
+////        c.parameters[1] = i;
+////        c.parameters[2] = j % 7;
+////        if ((i == 0 && j % 7 == 0) || (i == 0 && j % 7 == 6) || (i == 14 && j % 7 == 0) || (i == 14 && j % 7 == 6)) {
+////            c.parameters[1] = 1;
+////            c.parameters[2] = 1;
+////        }
+////        c.parameters[3] = 6;
+////        mover.runCommand(c);
+////
+////        while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
+////        while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
 //
-//    c.parameters[3] = 14;
-//    c.parameters[4] = 14;
+//        c.command = makeTileMoves;
+//        c.parameters[0] = 1;
+//        c.parameters[1] = i;
+//        c.parameters[2] = j;
+//        c.parameters[3] = i % 7;
+//        c.parameters[4] = 0;
+//        mover.runCommand(c);
 //
-//    c.parameters[5] = 3;
-//    c.parameters[6] = 4;
+//        while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
+//        while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
+//	    MotorX.sleep();
+//	    MotorY.sleep();
+//	    MotorZ.sleep();
+//	        }
+//        }
+//    }
 //
-//    c.parameters[7] = 0;
-//    c.parameters[8] = 0;
-
-//    c.command = getNewTiles;
-//    c.parameters[0] = 1;
 //
-//    c.parameters[1] = 0;
-//    c.parameters[2] = 0;
-//    c.parameters[3] = 0;
 //
-//    c.parameters[4] = 5;
-//    c.parameters[5] = 3;
-//    c.parameters[6] = 4;
+//	/* Has the motor move in a pattern. */
 //
-//    c.parameters[7] = 0;
-//    c.parameters[8] = 1;
-//    c.parameters[9] = 2;
-
-
+////    command c;
+////    c.command = pickupNewTile;
+////    c.parameters[0] = 1;
+////    c.parameters[1] = 2;
+//
+////    c.command = makeTileMoves;
+////    c.parameters[0] = 2;
+////
+////    c.parameters[1] = 2;
+////    c.parameters[2] = 3;
+////
+////    c.parameters[3] = 14;
+////    c.parameters[4] = 14;
+////
+////    c.parameters[5] = 3;
+////    c.parameters[6] = 4;
+////
+////    c.parameters[7] = 0;
+////    c.parameters[8] = 0;
+//
+////    c.command = getNewTiles;
+////    c.parameters[0] = 1;
+////
+////    c.parameters[1] = 0;
+////    c.parameters[2] = 0;
+////    c.parameters[3] = 0;
+////
+////    c.parameters[4] = 5;
+////    c.parameters[5] = 3;
+////    c.parameters[6] = 4;
+////
+////    c.parameters[7] = 0;
+////    c.parameters[8] = 1;
+////    c.parameters[9] = 2;
+//
+////    command c;
+////    c.command = pickupNewTile;
+////    c.parameters[0] = 1;
+////    c.parameters[1] = 2;
+////
 //    while (true) {
-//
-//
-//        pickup.TurnOff();
-//	    while (mover.IsBusy());
-//	    pickup.TurnOn();
+//	    for (int i = 0; i < 15; i++) {
+//	        for (int j = 0; j < 15; j++) {
+//	            while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
+//                while (MotorX.isMoving() || MotorY.isMoving() || MotorZ.isMoving());
+//                c.command = pickupNewTile;
+//                c.parameters[0] = 13;
+//                c.parameters[1] = 6;
+//                mover.runCommand(c);
+//	        }
+//	    }
 //	    mover.runCommand(c);
-
-//	    while (mover.IsBusy());
 //
+//	    while (mover.IsBusy());
+
 //        c.parameters[0] = 10;
 //        c.parameters[1] = 13;
 //        c.command = dropOffNewTile;

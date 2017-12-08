@@ -75,7 +75,8 @@ public:
                  uint8_t ms3Pin,
 
                  uint8_t * faultIn,
-                 uint8_t * faultRen);
+                 uint8_t * faultRen,
+                 SteppingModes mode);
 
     /* High level functions */
     void sleep();
@@ -139,6 +140,8 @@ private:
     int32_t max;
     StepperMotorStates state;
     bool isResetting;
+    SteppingModes mode;
+
 
     /* Motor Speed attributes */
     int32_t time;
